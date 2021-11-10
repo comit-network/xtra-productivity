@@ -15,3 +15,6 @@ async-trait = "0.1.51"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 trybuild = "1"
 xtra = { version = "0.6", features = ["with-tokio-1"] }
+
+[patch.crates-io]
+xtra = { git = "https://github.com/Restioson/xtra" } # Latest master has crucial patches.
