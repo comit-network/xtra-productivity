@@ -1,5 +1,3 @@
-use xtra::spawn::TokioGlobalSpawnExt;
-use xtra::Actor;
 use xtra_productivity::xtra_productivity;
 
 struct DummyActor;
@@ -28,8 +26,6 @@ impl DummyActor {
     }
 }
 
-fn is_i32(_: i32) {}
-
 struct DummyMessageWithoutMessageImpl;
 
 #[xtra_productivity(message_impl = false)]
@@ -45,18 +41,10 @@ impl xtra::Message for DummyMessageWithoutMessageImpl {
     type Result = ();
 }
 
-#[tokio::main]
-async fn main() {
-    // Create dummy actor
-    let dummy_actor = DummyActor.create(None).spawn_global();
+fn assert_impls_handler<T: xtra::Handler<M>, M: xtra::Message<Result = R>, R>() {}
 
-    // Send message to dummy actor
-    let i32 = dummy_actor.send(DummyMessage).await.unwrap();
-    is_i32(i32);
-    dummy_actor.send(DummyMessageWithContext).await.unwrap();
-
-    dummy_actor
-        .send(DummyMessageWithoutMessageImpl)
-        .await
-        .unwrap();
+fn main() {
+    assert_impls_handler::<DummyActor, DummyMessage, i32>();
+    assert_impls_handler::<DummyActor, DummyMessageWithContext, ()>();
+    assert_impls_handler::<DummyActor, DummyMessageWithoutMessageImpl, ()>();
 }
