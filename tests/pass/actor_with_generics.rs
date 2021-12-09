@@ -5,7 +5,13 @@ struct ActorWithParam<C> {
     ty: PhantomData<C>,
 }
 
-struct DummyMessage;
+struct DummyMessage<C, D> {
+    ty: PhantomData<(C, D)>,
+}
+
+struct DummyMessage2<A> {
+    ty: PhantomData<A>,
+}
 
 trait Foo {}
 
@@ -17,9 +23,11 @@ impl<C> ActorWithParam<C>
 where
     C: Foo,
 {
-    pub fn handle_dummy_message(&mut self, _message: DummyMessage) {
+    pub fn handle_dummy_message(&mut self, _message: DummyMessage<C, String>) {
         assert_impls_foo::<C>();
     }
+
+    pub fn handle_dummy_message2(&mut self, _message: DummyMessage2<String>) {}
 }
 
 fn assert_impls_foo<T: Foo>() {}

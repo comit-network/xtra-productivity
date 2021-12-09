@@ -1,6 +1,9 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{FnArg, GenericParam, ImplItem, ItemImpl, MetaNameValue, ReturnType};
+use syn::{
+    FnArg, GenericArgument, GenericParam, ImplItem, ItemImpl, MetaNameValue, PathArguments,
+    PathSegment, ReturnType, Type, TypePath,
+};
 
 #[proc_macro_attribute]
 pub fn xtra_productivity(attribute: TokenStream, item: TokenStream) -> TokenStream {
@@ -64,7 +67,7 @@ pub fn xtra_productivity(attribute: TokenStream, item: TokenStream) -> TokenStre
                 FnArg::Typed(ref typed) => typed.ty.clone()
             };
 
-                        let method_return = method.sig.output;
+            let method_return = method.sig.output;
             let method_block = method.block;
 
             let context_arg = method.sig.inputs.iter().nth(2).map(|fn_arg| quote! { #fn_arg }).unwrap_or_else(|| quote! {
@@ -76,15 +79,60 @@ pub fn xtra_productivity(attribute: TokenStream, item: TokenStream) -> TokenStre
                 ReturnType::Type(_, ref t) => quote! { #t }
             };
 
+            let (declaration, where_clause) = match message_type.as_ref() {
+                Type::Path(TypePath { path: syn::Path { segments, .. }, .. }) => {
+                    if let Some(PathSegment { arguments: PathArguments::AngleBracketed(angle), .. }) = segments.last().cloned() {
+
+                        // filter out actual type parameters
+                        let type_parameters = angle.args.into_iter().filter_map(|arg| match arg {
+                            GenericArgument::Type(Type::Path(TypePath { path, .. })) => {
+                                match path.segments.first() {
+                                    Some(only) if path.segments.len() == 1 => {
+                                        if only.ident.to_string().len() == 1 { // Heuristic: Single letter idents are type parameters
+                                            Some(only.ident.clone())
+                                        } else {
+                                            None
+                                        }
+                                    }
+                                    _ => None
+                                }
+                            },
+                            _ => None
+                        }).collect::<Vec<_>>();
+
+                        let declaration = quote! {
+                            <#(#type_parameters),*>
+                        };
+                        let where_clause = {
+                            let bounds = type_parameters.iter().map(|ty| quote! {
+                                #ty: Send + 'static,
+                            }).collect::<Vec<_>>();
+
+                            quote! {
+                                where
+                                    #(#bounds)*
+                            }
+                        };
+
+                        (declaration, where_clause)
+                    } else {
+                        (quote! {}, quote! {})
+                    }
+                },
+                _ => (quote! {}, quote! {})
+            };
+
             let message_impl = if want_message_impl {
                 quote! {
-                    impl xtra::Message for #message_type {
+                    impl#declaration xtra::Message for #message_type #where_clause {
                         type Result = #result_type;
                     }
                 }
             } else {
                 quote! {}
             };
+
+            // dbg!(&message_impl.to_string());
 
             quote! {
                 #message_impl
