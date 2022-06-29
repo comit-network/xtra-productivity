@@ -2,7 +2,11 @@ use xtra_productivity::xtra_productivity;
 
 struct DummyActor;
 
-impl xtra::Actor for DummyActor {}
+#[async_trait::async_trait]
+impl xtra::Actor for DummyActor {
+    type Stop = ();
+    async fn stopped(self) {}
+}
 
 mod inner {
     #[derive(Clone)]
@@ -28,25 +32,9 @@ impl DummyActor {
     }
 }
 
-struct DummyMessageWithoutMessageImpl;
-
-#[xtra_productivity(message_impl = false)]
-impl DummyActor {
-    pub fn handle_dummy_message_without_message_impl(
-        &mut self,
-        _message: DummyMessageWithoutMessageImpl,
-    ) {
-    }
-}
-
-impl xtra::Message for DummyMessageWithoutMessageImpl {
-    type Result = ();
-}
-
-fn assert_impls_handler<T: xtra::Handler<M>, M: xtra::Message<Result = R>, R>() {}
+fn assert_impls_handler<T: xtra::Handler<M, Return = R>, M, R>() {}
 
 fn main() {
     assert_impls_handler::<DummyActor, inner::DummyMessage, i32>();
     assert_impls_handler::<DummyActor, DummyMessageWithContext, ()>();
-    assert_impls_handler::<DummyActor, DummyMessageWithoutMessageImpl, ()>();
 }
