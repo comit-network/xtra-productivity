@@ -60,6 +60,26 @@ pub fn xtra_productivity(_attribute: TokenStream, item: TokenStream) -> TokenStr
                 ReturnType::Type(_, ref t) => quote! { #t }
             };
 
+            let attrs = method.attrs;
+
+            #[cfg(feature = "tracing")]
+            let instrument = if !attrs.iter().any(|attr| attr.path.segments.last().unwrap().ident == "instrument") {
+                let name = format!("Handle {}", quote!(#message_type));
+
+                let err = if matches!(&*message_type, syn::Type::Path(t) if t.path.segments.last().unwrap().ident == "Result") {
+                    quote!(err)
+                } else {
+                    quote!()
+                };
+
+                quote! { #[tracing::instrument(name = #name, skip_all, #err)] }
+            } else {
+                quote! {}
+            };
+
+            #[cfg(not(feature = "tracing"))]
+            let instrument = quote!();
+
             quote! {
                 #[async_trait::async_trait]
                 impl<#generic_params> xtra::Handler<#message_type> for #actor
@@ -68,6 +88,8 @@ pub fn xtra_productivity(_attribute: TokenStream, item: TokenStream) -> TokenStr
                         #(#generic_types: Send + 'static),*
                 {
                     type Return = #result_type;
+                    #(#attrs)*
+                    #instrument
                     async fn handle(&mut self, #message_arg, #context_arg) #method_return #method_block
                 }
             }
