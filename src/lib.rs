@@ -62,7 +62,7 @@ pub fn xtra_productivity(_attribute: TokenStream, item: TokenStream) -> TokenStr
 
             let attrs = method.attrs;
 
-            #[cfg(feature = "tracing")]
+            #[cfg(feature = "instrumentation")]
             let instrument = if !attrs.iter().any(|attr| attr.path.segments.last().unwrap().ident == "instrument") {
                 let name = format!("Handle {}", quote!(#message_type));
 
@@ -77,7 +77,7 @@ pub fn xtra_productivity(_attribute: TokenStream, item: TokenStream) -> TokenStr
                 quote! {}
             };
 
-            #[cfg(not(feature = "tracing"))]
+            #[cfg(not(feature = "instrumentation"))]
             let instrument = quote!();
 
             quote! {

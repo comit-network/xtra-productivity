@@ -7,7 +7,7 @@ edition = "2018"
 proc-macro = true
 
 [features]
-tracing = []
+instrumentation = []
 
 [dependencies]
 quote = "1"
@@ -15,8 +15,9 @@ syn = { version = "1", features = ["full"] }
 
 [dev-dependencies]
 async-trait = "0.1"
+tracing = { version = "0.1" }
 trybuild = "1"
-xtra = "0.6"
+xtra = { version = "0.6", features = ["instrumentation"] }
 
 [patch.crates-io]
 xtra = { git = "https://github.com/Restioson/xtra" } # Latest master has crucial patches.
