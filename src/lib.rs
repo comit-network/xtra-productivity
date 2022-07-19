@@ -60,7 +60,7 @@ pub fn xtra_productivity(_attribute: TokenStream, item: TokenStream) -> TokenStr
                 ReturnType::Type(_, ref t) => quote! { #t }
             };
 
-            let attrs = method.attrs;
+            let mut attrs = method.attrs;
 
             #[cfg(feature = "instrumentation")]
             let instrument = if !attrs.iter().any(|attr| attr.path.segments.last().unwrap().ident == "instrument") {
@@ -79,6 +79,13 @@ pub fn xtra_productivity(_attribute: TokenStream, item: TokenStream) -> TokenStr
 
             #[cfg(not(feature = "instrumentation"))]
             let instrument = quote!();
+
+            let method_block = if let Some(idx) = attrs.iter().position(|attr| attr.path.is_ident("blocking_handler")) {
+                let _ = attrs.swap_remove(idx);
+                quote!({ ::tokio::task::block_in_place(move || #method_block ) })
+            } else {
+                quote!(#method_block)
+            };
 
             quote! {
                 #[async_trait::async_trait]
